@@ -37,8 +37,14 @@ export class CameraManager {
       });
     }
 
+    videoElement.muted = true;
+    videoElement.playsInline = true;
     videoElement.srcObject = this.stream;
-    await videoElement.play();
+    try {
+      await videoElement.play();
+    } catch (e) {
+      console.warn('Video play warning:', e);
+    }
   }
 
   /**
@@ -61,6 +67,10 @@ export class CameraManager {
       try {
         const width = videoElement.videoWidth;
         const height = videoElement.videoHeight;
+
+        if (!width || !height) {
+          return reject(new Error('Camera stream is still starting. Please wait a moment.'));
+        }
 
         canvasElement.width = width;
         canvasElement.height = height;
@@ -98,7 +108,7 @@ export class CameraManager {
   }
 
   /**
-   * Gets the user's current GPS coordinates.
+   * Gets the user's current GPS coordinates with automatic fallback.
    * @returns {Promise<{lat: number, lng: number, accuracy: number}>}
    */
   async getLocation() {
@@ -106,6 +116,9 @@ export class CameraManager {
       if (!navigator.geolocation) {
         return reject(new Error('Geolocation is not supported by your browser'));
       }
+
+      const optionsHigh = { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 };
+      const optionsLow = { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 };
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -116,18 +129,32 @@ export class CameraManager {
           });
         },
         (error) => {
+          // If high-accuracy timed out, retry with low accuracy (WiFi/cell triangulation)
+          if (error.code === 3) {
+            navigator.geolocation.getCurrentPosition(
+              (pos2) => {
+                resolve({
+                  lat: pos2.coords.latitude,
+                  lng: pos2.coords.longitude,
+                  accuracy: pos2.coords.accuracy,
+                });
+              },
+              (err2) => {
+                reject(new Error('Location request timed out. Make sure GPS or Location is enabled.'));
+              },
+              optionsLow
+            );
+            return;
+          }
+
           const messages = {
             1: 'Location permission denied. Please allow location access in your browser settings.',
-            2: 'Location unavailable. Make sure GPS is enabled on your device.',
+            2: 'Location unavailable. Make sure GPS or Location is enabled on your device.',
             3: 'Location request timed out. Please try again.',
           };
           reject(new Error(messages[error.code] || 'Failed to get location'));
         },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 30000,
-        }
+        optionsHigh
       );
     });
   }
@@ -141,8 +168,7 @@ export class CameraManager {
   async reverseGeocode(lat, lng) {
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`,
-        { headers: { 'User-Agent': 'NostalgicMapPWA/1.0' } }
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`
       );
 
       if (!response.ok) throw new Error('Geocoding failed');
