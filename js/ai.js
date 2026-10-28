@@ -3,7 +3,14 @@
  * @description AI analysis module using Google Gemini 2.0 Flash for photo descriptions.
  */
 
-const CANDIDATE_MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+const CANDIDATE_MODELS = [
+  'gemini-flash-lite-latest',
+  'gemini-flash-latest',
+  'gemini-3.8-flash',
+  'gemini-3.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
+];
 
 export class AIAnalyzer {
   constructor() {
