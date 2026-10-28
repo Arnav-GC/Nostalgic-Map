@@ -1,0 +1,9 @@
+node_modules/
+package-lock.json
+.gradle/
+build/
+android/app/build/
+android/build/
+android/.gradle/
+android/captures/
+android/local.properties

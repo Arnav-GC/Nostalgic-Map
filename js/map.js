@@ -215,20 +215,27 @@ export class MapManager {
    * @param {Memory} memory - The memory object containing lat and lng coordinates.
    */
   flyToMemory(memory) {
-    if (!this.map || !memory || typeof memory.lat !== 'number' || typeof memory.lng !== 'number') {
-      console.warn('Cannot fly to memory: invalid map or coordinates', memory);
+    if (!this.map || !memory) return;
+
+    const lat = Number(memory.lat);
+    const lng = Number(memory.lng);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      console.warn('Cannot fly to memory: invalid coordinates', memory);
       return;
     }
 
-    this.map.flyTo([memory.lat, memory.lng], 16, {
+    this.map.flyTo([lat, lng], 16, {
       duration: 1.5
     });
 
     // Automatically open popup if marker exists
-    const record = this.markerRecords.find((r) => r.memory.id === memory.id);
+    const record = this.markerRecords.find((r) => String(r.memory.id) === String(memory.id));
     if (record && record.marker) {
       setTimeout(() => {
-        record.marker.openPopup();
+        if (this.clusterGroup && this.clusterGroup.hasLayer(record.marker)) {
+          record.marker.openPopup();
+        }
       }, 1500);
     }
   }

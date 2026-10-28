@@ -841,7 +841,13 @@ class NostalgicMapApp {
     if (!confirm('Are you sure you want to delete this memory?')) return;
 
     try {
-      await memoryStore.deleteMemory(this.activeModalMemory.id);
+      const deletedId = this.activeModalMemory.id;
+      await memoryStore.deleteMemory(deletedId);
+
+      if (this.activeProximityMemory && String(this.activeProximityMemory.id) === String(deletedId)) {
+        this.dismissProximityBanner();
+      }
+
       this.showToast('🗑️ Memory deleted');
       this.closeMemoryModal();
 
@@ -921,11 +927,15 @@ class NostalgicMapApp {
     try {
       await memoryStore.clearAll();
       this.allMemories = [];
+      proximityManager.updateMemories([]);
+      this.dismissProximityBanner();
+
       this.showToast('All memories cleared');
       this.updateStatsView();
       if (this.isMapInitialized) {
         await mapManager.loadMemories([]);
       }
+      this.renderMemoriesGrid();
     } catch (err) {
       console.error('Clear error:', err);
       this.showToast('Failed to clear data');

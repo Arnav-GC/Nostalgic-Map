@@ -63,12 +63,40 @@ You can also launch a quick PowerShell or Node `npx serve` server.
 
 ---
 
-## 📱 Installing on Phone (PWA)
+## 📱 Mobile App (Native Android via Capacitor)
+
+The app is now configured as a **native Android app** using Capacitor!
+
+### Project Location
+The full native Android project is generated in:
+`C:\Users\Arnav\Desktop\Nostalgic Map\android`
+
+### How to Run & Build the Native Android App:
+
+#### Method 1: Using Android Studio (Recommended)
+1. Download & install [Android Studio](https://developer.android.com/studio).
+2. Open Android Studio $\rightarrow$ Click **"Open"** $\rightarrow$ Navigate to `C:\Users\Arnav\Desktop\Nostalgic Map\android`.
+3. Wait for Gradle sync to complete.
+4. Plug in your Android phone (with USB Debugging enabled) or use an Android Virtual Device (AVD).
+5. Click the green **Run (▶)** button to install and run the app directly on your phone!
+6. To export an installable `.apk`:
+   - Go to **Build** $\rightarrow$ **Build Bundle(s) / APK(s)** $\rightarrow$ **Build APK(s)**.
+
+#### Method 2: Command Line Sync
+Whenever you make updates to the HTML/CSS/JS files:
+```powershell
+npm run sync
+```
+This automatically updates the web assets in the native Android container!
+
+---
+
+## 📱 Alternative: Instant PWA Install (No Android Studio Needed)
 1. Ensure your computer and phone are on the same Wi-Fi network.
-2. Run the local server.
+2. Run `.\start.bat`.
 3. On your phone's browser (Chrome or Safari), visit `http://<your-pc-ip>:8080`.
 4. Tap **"Add to Home Screen"** or **"Install App"**.
-5. Grant camera and location permissions when prompted.
+5. The app installs as a standalone fullscreen app on your phone's home screen.
 
 ---
 

@@ -1,0 +1,11 @@
+{
+  "appId": "com.nostalgicmap.app",
+  "appName": "Nostalgic Map",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
