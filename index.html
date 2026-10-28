@@ -104,6 +104,25 @@
         <p id="key-status"></p>
       </div>
       <div class="setting-group">
+        <label for="toggle-proximity">📍 Nearby Memory Notifications</label>
+        <p class="setting-hint">Get alerted whenever you walk or travel near a place where you saved a memory.</p>
+        <div class="toggle-row">
+          <label class="switch">
+            <input type="checkbox" id="toggle-proximity" checked>
+            <span class="slider round"></span>
+          </label>
+          <span id="proximity-status-text">Enabled</span>
+        </div>
+        <div id="proximity-sub-settings" class="sub-settings">
+          <div class="range-row">
+            <label for="proximity-radius">Alert Radius: <span id="proximity-radius-label">200m</span></label>
+            <input type="range" id="proximity-radius" min="50" max="1000" step="50" value="200">
+          </div>
+          <button id="btn-request-notification" class="btn-secondary">🔔 Enable System Notifications</button>
+          <p id="notification-perm-status" class="setting-hint"></p>
+        </div>
+      </div>
+      <div class="setting-group">
         <label>Data</label>
         <button id="btn-export" class="btn-secondary">📤 Export Memories</button>
         <button id="btn-clear-data" class="btn-danger">🗑️ Clear All Data</button>
@@ -127,6 +146,22 @@
         <button id="btn-analyze-modal" class="btn-secondary">🤖 Analyze with AI</button>
         <button id="btn-delete-memory" class="btn-danger">🗑️ Delete</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Proximity Alert Banner -->
+  <div id="proximity-banner" class="proximity-banner hidden">
+    <div class="proximity-banner-badge">📍 NEARBY MEMORY</div>
+    <div class="proximity-banner-body">
+      <img id="proximity-banner-img" class="proximity-banner-img hidden" alt="Nearby thumbnail" />
+      <div class="proximity-banner-text">
+        <h4 id="proximity-banner-title">Memory Nearby!</h4>
+        <p id="proximity-banner-desc">You are near a saved location</p>
+      </div>
+    </div>
+    <div class="proximity-banner-actions">
+      <button id="btn-view-proximity" class="btn-primary btn-sm">View</button>
+      <button id="btn-dismiss-proximity" class="btn-close-banner">✕</button>
     </div>
   </div>
 

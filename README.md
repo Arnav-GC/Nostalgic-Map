@@ -20,6 +20,12 @@ A Progressive Web App (PWA) built for hackathons that transforms everyday moment
   - Interactive memory cards inside pins with quick-view actions.
   - **Timeline Slider**: Slide across time to watch memories appear chronologically.
 
+- 🔔 **Proximity & Geofencing Alerts**:
+  - Live GPS proximity tracking (`watchPosition`) checks distance to saved memories using the Haversine formula.
+  - **In-App Banner**: Pops up when you are near a saved place with distance and memory preview.
+  - **System Notifications & Vibration**: Pushes notifications via Web Notifications API & Service Worker even when the app is minimized.
+  - **Configurable Radius & Cooldown**: Adjust alert distance (50m - 1000m) in Settings with smart debouncing to prevent repeated alerts.
+
 - 🤖 **Gemini 2.0 Flash Vision AI**:
   - Analyzes captured images to describe the setting, mood, objects, and text in warm diary-like prose.
   - One-click AI re-analysis directly inside the memory detail modal.

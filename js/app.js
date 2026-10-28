@@ -8,6 +8,7 @@ import { memoryStore } from './storage.js';
 import { cameraManager } from './camera.js';
 import { mapManager } from './map.js';
 import { aiAnalyzer } from './ai.js';
+import { proximityManager } from './proximity.js';
 
 class NostalgicMapApp {
   constructor() {
@@ -15,6 +16,7 @@ class NostalgicMapApp {
     this.currentView = 'camera';
     this.isMapInitialized = false;
     this.activeModalMemory = null;
+    this.activeProximityMemory = null;
     this.pendingCapture = null;
     this.allMemories = [];
 
@@ -28,6 +30,7 @@ class NostalgicMapApp {
   async init() {
     this._cacheDom();
     this._initApiKey();
+    this._initProximity();
     this._bindEvents();
 
     // Start with Camera view
@@ -36,7 +39,7 @@ class NostalgicMapApp {
     // Pre-initialize storage
     try {
       await memoryStore.init();
-      this.refreshMemories();
+      await this.refreshMemories();
     } catch (err) {
       console.error('Storage initialization failed:', err);
       this.showToast('⚠️ Storage initialization failed');
@@ -104,6 +107,23 @@ class NostalgicMapApp {
 
       // Toast
       toast: document.getElementById('toast'),
+
+      // Proximity Alert Banner
+      proximityBanner: document.getElementById('proximity-banner'),
+      proximityBannerTitle: document.getElementById('proximity-banner-title'),
+      proximityBannerDesc: document.getElementById('proximity-banner-desc'),
+      proximityBannerImg: document.getElementById('proximity-banner-img'),
+      btnViewProximity: document.getElementById('btn-view-proximity'),
+      btnDismissProximity: document.getElementById('btn-dismiss-proximity'),
+
+      // Proximity Settings
+      toggleProximity: document.getElementById('toggle-proximity'),
+      proximityStatusText: document.getElementById('proximity-status-text'),
+      proximitySubSettings: document.getElementById('proximity-sub-settings'),
+      proximityRadius: document.getElementById('proximity-radius'),
+      proximityRadiusLabel: document.getElementById('proximity-radius-label'),
+      btnRequestNotification: document.getElementById('btn-request-notification'),
+      notificationPermStatus: document.getElementById('notification-perm-status'),
     };
   }
 
@@ -120,6 +140,110 @@ class NostalgicMapApp {
       }
       this._setKeyStatus('API key loaded and active', 'success');
     }
+  }
+
+  /**
+   * Initializes proximity tracking and syncs settings controls.
+   * @private
+   */
+  _initProximity() {
+    proximityManager.init(this.allMemories, (memory, distance, totalNearby) => {
+      this.showProximityBanner(memory, distance, totalNearby);
+    });
+
+    if (this.dom.toggleProximity) {
+      this.dom.toggleProximity.checked = proximityManager.enabled;
+    }
+    if (this.dom.proximityStatusText) {
+      this.dom.proximityStatusText.textContent = proximityManager.enabled ? 'Enabled' : 'Disabled';
+    }
+    if (this.dom.proximitySubSettings) {
+      this.dom.proximitySubSettings.style.display = proximityManager.enabled ? 'flex' : 'none';
+    }
+    if (this.dom.proximityRadius) {
+      this.dom.proximityRadius.value = proximityManager.radiusMeters;
+    }
+    if (this.dom.proximityRadiusLabel) {
+      this.dom.proximityRadiusLabel.textContent = `${proximityManager.radiusMeters}m`;
+    }
+    this._updateNotificationPermStatus();
+  }
+
+  /**
+   * Updates notification permission status message in settings.
+   * @private
+   */
+  _updateNotificationPermStatus() {
+    if (!this.dom.notificationPermStatus) return;
+    if (!('Notification' in window)) {
+      this.dom.notificationPermStatus.textContent = 'Web notifications are not supported in this browser.';
+      if (this.dom.btnRequestNotification) this.dom.btnRequestNotification.style.display = 'none';
+      return;
+    }
+
+    const perm = Notification.permission;
+    if (perm === 'granted') {
+      this.dom.notificationPermStatus.textContent = '✅ System notifications enabled! You will be alerted even if the tab is in background.';
+      if (this.dom.btnRequestNotification) {
+        this.dom.btnRequestNotification.textContent = '🔔 Notifications Active';
+        this.dom.btnRequestNotification.disabled = true;
+      }
+    } else if (perm === 'denied') {
+      this.dom.notificationPermStatus.textContent = '❌ Notifications blocked. Allow notifications in browser address bar to receive alerts.';
+      if (this.dom.btnRequestNotification) {
+        this.dom.btnRequestNotification.disabled = true;
+      }
+    } else {
+      this.dom.notificationPermStatus.textContent = 'Click below to allow system alerts when near a memory location.';
+      if (this.dom.btnRequestNotification) {
+        this.dom.btnRequestNotification.disabled = false;
+      }
+    }
+  }
+
+  /**
+   * Shows the in-app proximity banner for an approaching memory.
+   * @param {Object} memory
+   * @param {number} distance
+   * @param {number} totalNearby
+   */
+  showProximityBanner(memory, distance, totalNearby) {
+    if (!this.dom.proximityBanner) return;
+
+    this.activeProximityMemory = memory;
+
+    if (this.dom.proximityBannerTitle) {
+      this.dom.proximityBannerTitle.textContent = totalNearby > 1
+        ? `📍 ${totalNearby} Memories Nearby!`
+        : '📍 Memory Nearby!';
+    }
+
+    if (this.dom.proximityBannerDesc) {
+      const distText = distance < 1000 ? `${distance}m away` : `${(distance / 1000).toFixed(1)}km away`;
+      const locationText = memory.locationName || 'Saved Location';
+      this.dom.proximityBannerDesc.textContent = `${locationText} (${distText})`;
+    }
+
+    if (this.dom.proximityBannerImg) {
+      if (memory.photoDataUrl) {
+        this.dom.proximityBannerImg.src = memory.photoDataUrl;
+        this.dom.proximityBannerImg.classList.remove('hidden');
+      } else {
+        this.dom.proximityBannerImg.classList.add('hidden');
+      }
+    }
+
+    this.dom.proximityBanner.classList.remove('hidden');
+  }
+
+  /**
+   * Dismisses the in-app proximity banner.
+   */
+  dismissProximityBanner() {
+    if (this.dom.proximityBanner) {
+      this.dom.proximityBanner.classList.add('hidden');
+    }
+    this.activeProximityMemory = null;
   }
 
   /**
@@ -193,6 +317,58 @@ class NostalgicMapApp {
     }
     if (this.dom.btnDeleteMemory) {
       this.dom.btnDeleteMemory.addEventListener('click', () => this.deleteActiveMemory());
+    }
+
+    // Proximity banner actions
+    if (this.dom.btnViewProximity) {
+      this.dom.btnViewProximity.addEventListener('click', async () => {
+        if (this.activeProximityMemory) {
+          const mem = this.activeProximityMemory;
+          this.dismissProximityBanner();
+          await this.switchView('map');
+          mapManager.flyToMemory(mem);
+        }
+      });
+    }
+    if (this.dom.btnDismissProximity) {
+      this.dom.btnDismissProximity.addEventListener('click', () => this.dismissProximityBanner());
+    }
+
+    // Proximity settings controls
+    if (this.dom.toggleProximity) {
+      this.dom.toggleProximity.addEventListener('change', (e) => {
+        const enabled = e.target.checked;
+        proximityManager.setEnabled(enabled);
+        if (this.dom.proximityStatusText) {
+          this.dom.proximityStatusText.textContent = enabled ? 'Enabled' : 'Disabled';
+        }
+        if (this.dom.proximitySubSettings) {
+          this.dom.proximitySubSettings.style.display = enabled ? 'flex' : 'none';
+        }
+        this.showToast(enabled ? '📍 Nearby memory alerts active' : 'Nearby alerts paused');
+      });
+    }
+
+    if (this.dom.proximityRadius) {
+      this.dom.proximityRadius.addEventListener('input', (e) => {
+        const radius = parseInt(e.target.value, 10);
+        proximityManager.setRadius(radius);
+        if (this.dom.proximityRadiusLabel) {
+          this.dom.proximityRadiusLabel.textContent = `${radius}m`;
+        }
+      });
+    }
+
+    if (this.dom.btnRequestNotification) {
+      this.dom.btnRequestNotification.addEventListener('click', async () => {
+        const perm = await proximityManager.requestNotificationPermission();
+        this._updateNotificationPermStatus();
+        if (perm === 'granted') {
+          this.showToast('🔔 System notifications enabled!');
+        } else if (perm === 'denied') {
+          this.showToast('⚠️ Notifications blocked in browser');
+        }
+      });
     }
 
     // Settings actions
@@ -475,6 +651,7 @@ class NostalgicMapApp {
   async refreshMemories() {
     try {
       this.allMemories = await memoryStore.getAllMemories();
+      proximityManager.updateMemories(this.allMemories);
     } catch (err) {
       console.error('Failed to get memories:', err);
       this.allMemories = [];

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nostalgic-map-v1';
+const CACHE_NAME = 'nostalgic-map-v2';
 
 const STATIC_ASSETS = [
   './',
@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   './js/camera.js',
   './js/map.js',
   './js/ai.js',
+  './js/proximity.js',
   './js/app.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -124,6 +125,24 @@ self.addEventListener('fetch', (event) => {
         }
         throw err;
       });
+    })
+  );
+});
+
+// Notification Click - Focus or open the app window
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('./index.html');
+      }
     })
   );
 });
