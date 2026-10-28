@@ -184,6 +184,9 @@ class NostalgicMapApp {
       this.dom.modal.addEventListener('click', (e) => {
         if (e.target === this.dom.modal) this.closeMemoryModal();
       });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') this.closeMemoryModal();
+      });
     }
     if (this.dom.btnAnalyzeModal) {
       this.dom.btnAnalyzeModal.addEventListener('click', () => this.reanalyzeModalMemory());

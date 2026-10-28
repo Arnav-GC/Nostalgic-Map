@@ -128,13 +128,28 @@ export class AIAnalyzer {
         generationConfig: { temperature: 0.8, maxOutputTokens: 200 },
       };
 
-      const response = await fetch(`${this._endpoint()}?key=${encodeURIComponent(this.apiKey)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      let response = null;
+      let lastErr = null;
 
-      if (!response.ok) throw new Error(`API error (${response.status})`);
+      for (const model of CANDIDATE_MODELS) {
+        try {
+          response = await fetch(`${this._endpoint(model)}?key=${encodeURIComponent(this.apiKey)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (response.ok) {
+            this.activeModel = model;
+            break;
+          }
+          const errData = await response.json().catch(() => ({}));
+          lastErr = errData.error?.message || `HTTP ${response.status}`;
+        } catch (e) {
+          lastErr = e.message;
+        }
+      }
+
+      if (!response || !response.ok) throw new Error(lastErr || 'API request failed');
 
       const data = await response.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -156,6 +171,7 @@ export class AIAnalyzer {
     }
 
     try {
+      let lastResponse = null;
       for (const model of CANDIDATE_MODELS) {
         const response = await fetch(`${this._endpoint(model)}?key=${encodeURIComponent(key)}`, {
           method: 'POST',
@@ -166,14 +182,16 @@ export class AIAnalyzer {
           }),
         });
 
+        lastResponse = response;
+
         if (response.status === 200 || response.status === 429) {
           this.activeModel = model;
           return { valid: true };
         }
       }
 
-      const errData = await response.json().catch(() => ({}));
-      return { valid: false, error: errData.error?.message || `HTTP ${response.status}` };
+      const errData = lastResponse ? await lastResponse.json().catch(() => ({})) : {};
+      return { valid: false, error: errData.error?.message || (lastResponse ? `HTTP ${lastResponse.status}` : 'Request failed') };
     } catch (err) {
       return { valid: false, error: err.message };
     }
