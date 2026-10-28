@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="css/styles.css">
 
   <!-- Local Modules -->
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=3"></script>
 </head>
 <body>
   <!-- Camera View -->
@@ -181,7 +181,10 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
-          .then((reg) => console.log('ServiceWorker registered:', reg.scope))
+          .then((reg) => {
+            console.log('ServiceWorker registered:', reg.scope);
+            reg.update();
+          })
           .catch((err) => console.warn('ServiceWorker registration error:', err));
       });
     }

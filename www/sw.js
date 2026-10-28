@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nostalgic-map-v2';
+const CACHE_NAME = 'nostalgic-map-v3';
 
 const STATIC_ASSETS = [
   './',
@@ -43,7 +43,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event - Clean up old caches
+// Activate event - Clean up old caches and claim clients immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -59,7 +59,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - Cache-first for static assets, network-first for APIs
+// Fetch event - Network-first for local code and APIs to ensure freshest updates, cache fallback for offline
 self.addEventListener('fetch', (event) => {
   const request = event.request;
 
@@ -72,25 +72,28 @@ self.addEventListener('fetch', (event) => {
 
   // Network-first for external APIs
   const isNetworkFirst = NETWORK_FIRST_DOMAINS.some(domain => url.hostname.includes(domain));
+  const isLocalAsset = url.origin === location.origin;
 
-  if (isNetworkFirst) {
+  if (isNetworkFirst || isLocalAsset) {
+    // Network-first strategy: always fetch freshest code, fallback to cache when offline
     event.respondWith(
       fetch(request)
-        .then((response) => {
-          // If response is valid, clone and optionally cache
-          if (response && response.status === 200) {
-            const responseClone = response.clone();
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, responseClone);
             });
           }
-          return response;
+          return networkResponse;
         })
         .catch(async () => {
-          // If offline, attempt to serve cached response if available
           const cachedResponse = await caches.match(request);
           if (cachedResponse) {
             return cachedResponse;
+          }
+          if (request.mode === 'navigate') {
+            return (await caches.match('./index.html')) || (await caches.match('/index.html'));
           }
           return new Response(JSON.stringify({ error: 'Network unavailable and not cached.' }), {
             status: 503,
@@ -101,7 +104,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for app shell, scripts, CSS, and CDN dependencies
+  // Cache-first for third-party static CDN dependencies (Leaflet, unpkg)
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
@@ -109,7 +112,6 @@ self.addEventListener('fetch', (event) => {
       }
 
       return fetch(request).then((networkResponse) => {
-        // Cache valid responses
         if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -117,13 +119,6 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch((err) => {
-        console.warn('[ServiceWorker] Fetch failed for:', request.url, err);
-        // Fallback for navigation requests
-        if (request.mode === 'navigate') {
-          return caches.match('./index.html') || caches.match('/index.html');
-        }
-        throw err;
       });
     })
   );

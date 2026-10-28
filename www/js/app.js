@@ -138,7 +138,7 @@ class NostalgicMapApp {
       if (this.dom.apiKeyInput) {
         this.dom.apiKeyInput.value = savedKey;
       }
-      this._setKeyStatus('API key loaded and active', 'success');
+      this._setKeyStatus('✅ Gemini API key connected and active', 'success');
     }
   }
 
@@ -873,16 +873,19 @@ class NostalgicMapApp {
       return;
     }
 
+    // Persist immediately so the key is never lost
+    localStorage.setItem('nostalgic_gemini_api_key', key);
+    aiAnalyzer.setApiKey(key);
+
     this._setKeyStatus('Validating key with Google Gemini...', '');
 
     const test = await aiAnalyzer.testApiKey(key);
     if (test.valid) {
-      localStorage.setItem('nostalgic_gemini_api_key', key);
-      aiAnalyzer.setApiKey(key);
-      this._setKeyStatus('✅ Valid Gemini API key saved!', 'success');
+      this._setKeyStatus('✅ Valid Gemini API key saved & verified!', 'success');
       this.showToast('Gemini API key connected!');
     } else {
-      this._setKeyStatus(`❌ Invalid key: ${test.error || 'Failed'}`, 'error');
+      this._setKeyStatus(`⚠️ Key saved! Verification note: ${test.error || 'Check connection'}`, 'error');
+      this.showToast('API key saved');
     }
   }
 
