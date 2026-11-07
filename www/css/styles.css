@@ -316,7 +316,17 @@ html, body {
 #map-container {
   width: 100%;
   flex: 1;
+  min-height: calc(100vh - var(--header-height) - var(--nav-height));
+  height: 100%;
+  position: relative;
   background: #0c0e14;
+}
+
+/* Ensure Leaflet pane fills properly */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  background: #0c0e14 !important;
 }
 
 /* Custom Marker & Popup Styles */

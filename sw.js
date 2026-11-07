@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nostalgic-map-v3';
+const CACHE_NAME = 'nostalgic-map-v4';
 
 const STATIC_ASSETS = [
   './',

@@ -645,7 +645,13 @@ class NostalgicMapApp {
     // Leaflet needs invalidateSize() after unhiding container
     setTimeout(() => {
       mapManager.invalidateSize();
-    }, 150);
+    }, 50);
+    setTimeout(() => {
+      mapManager.invalidateSize();
+    }, 250);
+    setTimeout(() => {
+      mapManager.invalidateSize();
+    }, 600);
 
     await this.refreshMemories();
     await mapManager.loadMemories(this.allMemories);
