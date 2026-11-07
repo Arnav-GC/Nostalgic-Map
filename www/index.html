@@ -64,6 +64,11 @@
     <div class="view-header">
       <h1>🗺️ Memory Map</h1>
       <div id="map-controls">
+        <select id="map-layer-select" class="map-layer-select" title="Switch Earth Map Style">
+          <option value="satellite">🌍 Earth (Satellite)</option>
+          <option value="streets">🗺️ Earth (Streets)</option>
+          <option value="dark">🌙 Dark Mode</option>
+        </select>
         <input type="range" id="timeline-slider" min="0" max="100" value="100">
         <span id="timeline-label">All Time</span>
       </div>

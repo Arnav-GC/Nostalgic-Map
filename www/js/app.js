@@ -81,6 +81,7 @@ class NostalgicMapApp {
       mapContainer: document.getElementById('map-container'),
       timelineSlider: document.getElementById('timeline-slider'),
       timelineLabel: document.getElementById('timeline-label'),
+      mapLayerSelect: document.getElementById('map-layer-select'),
 
       // Memories view
       memoriesGrid: document.getElementById('memories-grid'),
@@ -284,6 +285,11 @@ class NostalgicMapApp {
     // Map controls
     if (this.dom.timelineSlider) {
       this.dom.timelineSlider.addEventListener('input', (e) => this.handleTimelineChange(e));
+    }
+    if (this.dom.mapLayerSelect) {
+      this.dom.mapLayerSelect.addEventListener('change', (e) => {
+        mapManager.setMapLayer(e.target.value);
+      });
     }
 
     // Custom event from map popups

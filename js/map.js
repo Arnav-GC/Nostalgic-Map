@@ -34,11 +34,17 @@ export class MapManager {
 
     /** @type {boolean} */
     this._hasClickDelegate = false;
+
+    /** @type {Object<string, L.TileLayer>} */
+    this.tileLayers = {};
+
+    /** @type {string} */
+    this.currentLayerKey = 'satellite';
   }
 
   /**
    * Initializes the Leaflet map within the specified container.
-   * Configures CartoDB Dark Matter tile layer and creates a MarkerCluster group.
+   * Configures Earth Satellite, OpenStreetMap, and Dark tile layers and creates a MarkerCluster group.
    *
    * @param {string|HTMLElement} containerId - The ID or DOM element of the map container.
    * @returns {L.Map} The initialized Leaflet map instance.
@@ -54,25 +60,52 @@ export class MapManager {
       this.map = null;
       this.clusterGroup = null;
       this.markerRecords = [];
+      this.tileLayers = {};
     }
 
-    // Create Leaflet map centered at India [20.5937, 78.9629] with zoom 5
+    // Create Leaflet map centered on whole Earth [20, 0] with global zoom 2
     this.map = L.map(containerId, {
       zoomControl: true,
+      maxZoom: 19,
+      minZoom: 2,
+      worldCopyJump: true
+    }).setView([20, 0], 2);
+
+    // 1. Realistic Earth Satellite Imagery (Esri World Imagery)
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS User Community',
       maxZoom: 19
-    }).setView([20.5937, 78.9629], 5);
+    });
 
-    // OpenStreetMap CartoDB Dark Matter tiles
-    const darkTileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-    const tileAttribution =
-      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors ' +
-      '&copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>';
+    // 2. OpenStreetMap Standard Earth (Streets, borders, cities)
+    const streetsLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    });
 
-    L.tileLayer(darkTileUrl, {
-      attribution: tileAttribution,
+    // 3. CartoDB Dark Matter tiles
+    const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 20
-    }).addTo(this.map);
+    });
+
+    this.tileLayers = {
+      satellite: satelliteLayer,
+      streets: streetsLayer,
+      dark: darkLayer
+    };
+
+    // Add Earth Satellite layer by default
+    satelliteLayer.addTo(this.map);
+    this.currentLayerKey = 'satellite';
+
+    // Native Leaflet layer toggle in top right
+    L.control.layers({
+      '🌍 Earth Satellite': satelliteLayer,
+      '🗺️ Earth Streets': streetsLayer,
+      '🌙 Dark Mode': darkLayer
+    }, null, { position: 'topright' }).addTo(this.map);
 
     // Initialize MarkerCluster group
     if (typeof L.markerClusterGroup === 'function') {
@@ -91,7 +124,35 @@ export class MapManager {
     // Attach event delegation for popup 'View' button clicks
     this._setupEventDelegation();
 
+    // Gently locate user on Earth if memories are empty
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (this.map && (!this.markerRecords || this.markerRecords.length === 0)) {
+            this.map.flyTo([pos.coords.latitude, pos.coords.longitude], 10, { duration: 2 });
+          }
+        },
+        () => {},
+        { timeout: 5000, maximumAge: 60000 }
+      );
+    }
+
     return this.map;
+  }
+
+  /**
+   * Switches the active base tile layer.
+   * @param {'satellite'|'streets'|'dark'} layerKey
+   */
+  setMapLayer(layerKey) {
+    if (!this.map || !this.tileLayers[layerKey]) return;
+    Object.values(this.tileLayers).forEach((layer) => {
+      if (this.map.hasLayer(layer)) {
+        this.map.removeLayer(layer);
+      }
+    });
+    this.tileLayers[layerKey].addTo(this.map);
+    this.currentLayerKey = layerKey;
   }
 
   /**
